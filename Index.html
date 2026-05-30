@@ -21,13 +21,13 @@
 
 <header>
     <h1>Multi-ISP Anycast Web Performance Monitor</h1>
-    <p>Automated Zabbix 7.4 & Grafana Solution for Tracking Dynamic CDN Endpoints across Dual Providers</p>
+    <p>Automated Zabbix 7.4 Solution for Tracking Dynamic CDN Endpoints across Dual Providers</p>
 </header>
 
 <div class="container">
     <div class="card">
         <h2>Overview</h2>
-        <p>When monitoring high-availability websites behind Anycast networks or CDNs (Cloudflare, AWS CloudFront), target IP addresses rotate frequently. This solution uses <strong>Zabbix Low-Level Discovery (LLD)</strong> to discover active IP endpoints dynamically and monitor latency, operational availability, and hop paths (MTR) independently across a Primary (e.g., JIO) and Backup ISP.</p>
+        <p>When monitoring high-availability websites behind Anycast networks or CDNs (Cloudflare, AWS CloudFront), target IP addresses rotate frequently. This solution uses <strong>Zabbix Low-Level Discovery (LLD)</strong> to discover active IP endpoints dynamically and monitor latency, operational availability, and hop paths (MTR) independently across a Primary and Backup ISP.</p>
     </div>
 
     <div class="card">
@@ -35,17 +35,16 @@
         <ul>
             <li><strong>Dynamic Variable Matching:</strong> Tracks multi-ISP performance parameters simultaneously.</li>
             <li><strong>Zero Stale Alerts:</strong> Uses Zabbix 7.4 native <code>nodata()</code> logic constraints to instantly silence alerts on retired Anycast IPs.</li>
-            <li><strong>Grafana-Ready Architecture:</strong> Built to feed seamlessly into flat Table matrices or dynamic Node Graph topology visualizations.</li>
         </ul>
     </div>
 
     <div class="card">
-        <h2>1. The Script Framework (<code>check_aws_site.py</code>)</h2>
+        <h2>1. The Script Framework (<code>check_web_site.py</code>)</h2>
         <p>Deploy this file to your Zabbix server external scripts directory: <code>/usr/lib/zabbix/externalscripts/</code>. Ensure it has execution permissions (<code>chmod +x</code>).</p>
         <pre><code># The script must return a clean JSON payload mapping the discovered properties:
 [
   {
-    "{#AWSIP}": "158.120.16.9",
+    "{#AWSIP}": "172.217.171.110",
     "isp1_name": "JIO",
     "isp2_name": "Pionner",
     "isp1_status": 1,
@@ -57,7 +56,7 @@
 
     <div class="card">
         <h2>2. Zabbix Template Configuration</h2>
-        <p>Import the <code>dual_isp_template.yaml</code> configuration file included in this repository into your Zabbix 7.4 instance. It configures the following safety-gated expression rules:</p>
+        <p>Import the <code>Web Performance Monitoring-Dual-ISP.yaml</code> configuration file included in this repository into your Zabbix 7.4 instance. It configures the following safety-gated expression rules:</p>
         <pre><code># Primary Path Alert Expression
 (max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],10m)=0 
 or min(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],3m)>300)
