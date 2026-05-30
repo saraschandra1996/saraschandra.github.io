@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step-by-Step Configuration Guide</title>
+    <style>
+        :root { --primary: #1e3a8a; --accent: #3b82f6; --dark: #0f172a; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --code-bg: #0f172a; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: var(--dark); background: var(--bg); margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 2.5rem 1.5rem; text-align: center; }
+        nav { background: #111827; padding: 1rem; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        nav a { color: #f3f4f6; text-decoration: none; margin: 0 1.5rem; font-weight: 600; font-size: 0.95rem; }
+        nav a:hover { color: var(--accent); }
+        nav a.active { color: #60a5fa; border-bottom: 2px solid #60a5fa; padding-bottom: 0.25rem; }
+        .container { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2.5rem; border: 1px solid var(--border); }
+        h1 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 0; }
+        pre { background: var(--code-bg); color: #f8fafc; padding: 1.25rem; border-radius: 6px; overflow-x: auto; font-family: 'Fira Code', Consolas, monospace; font-size: 0.9rem; margin: 1rem 0; }
+        code { background: #e2e8f0; color: #0f172a; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+        .step-num { display: inline-block; background: var(--primary); color: white; width: 28px; height: 28px; line-height: 28px; text-align: center; border-radius: 50%; font-weight: bold; margin-right: 0.5rem; }
+        .alert-info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 1rem; border-radius: 4px; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html">Architecture Overview</a>
+    <a class="active" href="setup.html">Step-by-Step Setup</a>
+    <a href="troubleshooting.html">Troubleshooting Guide</a>
+</nav>
+
+<header>
+    <h1>System Deployment Guide</h1>
+    <p>Prerequisites, Script Installation, Interface Binding, and Template Ingestion Steps</p>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>System Prerequisites</h2>
+        <p>Before installing the Zabbix configurations, the proxy or server executing the external checks must have the necessary system packages and network capabilities installed:</p>
+        <ul>
+            <li><strong>Python 3.6+</strong> with standard <code>subprocess</code>, <code>threading</code>, and <code>json</code> modules.</li>
+            <li><strong>MTR Binary:</strong> Must support autonomous system inspection flags (<code>-z / --aslookup</code>).</li>
+            <li><strong>Linux Capabilities:</strong> The user process running Zabbix (typically <code>zabbix</code>) requires permissions to open raw sockets for ping and interface binding operations.</li>
+        </ul>
+        <p>Execute the following commands on your Zabbix worker node to install utilities and assign network capability flags:</p>
+        <pre><code># Install MTR on Debian/Ubuntu systems
+sudo apt-get update && sudo apt-get install mtr-tiny -y
+
+# Grant Zabbix components permission to issue raw packet binding commands
+sudo setcap cap_net_raw+ep /bin/ping
+sudo setcap cap_net_raw+ep /usr/bin/mtr-raw</code></pre>
+    </div>
+
+    <div class="card">
+        <h2><span class="step-num">1</span> Install External Scripts</h2>
+        <p>Drop <code>check_web_site.py</code> and <code>isp_config.py</code> directly into your system's designated Zabbix external scripts directory, which defaults to <code>/usr/lib/zabbix/externalscripts/</code>.</p>
+        
+        <p>Open <code>isp_config.py</code> and modify the source parameters to match your localized infrastructure constraints:</p>
+        <pre><code># File destination: /usr/lib/zabbix/externalscripts/isp_config.py
+ISP1_SOURCE_IP = "203.0.113.10"   # The source interface IP of your Primary ISP (e.g., JIO)
+ISP1_NAME = "JIO"
+
+ISP2_SOURCE_IP = "198.51.100.25"  # The source interface IP of your Backup ISP (e.g., Pionner)
+ISP2_NAME = "Pionner"</code></pre>
+        <p>Set correct ownership and executable flags so the Zabbix daemon can spawn the child worker processes cleanly:</p>
+        <pre><code>sudo chown zabbix:zabbix /usr/lib/zabbix/externalscripts/check_web_site.py
+sudo chown zabbix:zabbix /usr/lib/zabbix/externalscripts/isp_config.py
+sudo chmod +x /usr/lib/zabbix/externalscripts/check_web_site.py</code></pre>
+    </div>
+
+    <div class="card">
+        <h2><span class="step-num">2</span> Import Zabbix Template</h2>
+        <p>Download the <code>dual_isp_template.yaml</code> file from the repository root. Navigate to your Zabbix 7.4 Web Interface and follow these configuration steps:</p>
+        <ol>
+            <li>Go to <strong>Data collection</strong> ➡️ <strong>Templates</strong> and click <strong>Import</strong> in the top right corner.</li>
+            <li>Choose the <code>dual_isp_template.yaml</code> file.</li>
+            <li>Keep the rules at their defaults (Update existing, Create new) and click <strong>Import</strong>.</li>
+        </ol>
+        <div class="alert-info">
+            <strong>Key Design Principle:</strong> The template contains an absolute Master External Item configured with an operational interval of <code>30s</code>. The underlying Discovery Rule runs as a <strong>Dependent Item</strong> mapping directly to this Master. Never configure the LLD rule to cycle faster than the Master Item interval, as this will result in data processing gaps and item flapping.
+        </div>
+    </div>
+
+    <div class="card">
+        <h2><span class="step-num">3</span> Assign Host Macro Constants</h2>
+        <p>Once imported, link the newly created template to your target host configuration block:</p>
+        <ol>
+            <li>Navigate to <strong>Data collection</strong> ➡️ <strong>Hosts</strong> and select your monitoring asset.</li>
+            <li>Click on the <strong>Macros</strong> tab and select <strong>Inherited and host macros</strong>.</li>
+            <li>Locate the <code>{$AWS_SITE_URL}</code> context row and assign your target website address (e.g., <code>go.proctoru.com</code>). Click <strong>Update</strong>.</li>
+        </ol>
+    </div>
+</div>
+
+</body>
+</html>
