@@ -1,0 +1,157 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
+      name: Templates/Applications
+  templates:
+    - uuid: e83e87f6f4c24b80b2c79ec070e7a4c9
+      template: 'Web Performance Monitoring-Dual-ISP'
+      name: 'Web Performance Monitoring-Dual-ISP'
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: 853d2934f63b4955938271ef75a9466a
+          name: 'Dual-ISP: Web Performance Metrics Collector Master'
+          type: EXTERNAL
+          key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+          delay: 30s
+          value_type: TEXT
+          timeout: 30s
+      discovery_rules:
+        - uuid: bcdf5b93d40c4c4d948956c32eff4486
+          name: 'Dual-ISP: Dynamic IP Endpoint Discovery'
+          type: DEPENDENT
+          key: 'net.multi_isp.discovery["{$AWS_SITE_URL}"]'
+          lifetime: 30d
+          item_prototypes:
+            - uuid: 61443cb4a40c40b5985ded166a7e6f02
+              name: '{#ISP2} Latency to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.latency.backup[{#AWSIP}]'
+              value_type: FLOAT
+              units: ms
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp2_latency.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: '0'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+            - uuid: 1abf520b10144247acc8c267e1bb9e99
+              name: '{#ISP1} Latency to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.latency.primary[{#AWSIP}]'
+              value_type: FLOAT
+              units: ms
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp1_latency.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: '0'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+            - uuid: 9cc8bbc02be04db7a2721bf29e6f9cfd
+              name: '{#ISP2} Operational Status to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.status.backup[{#AWSIP}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp2_status.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: '0'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+            - uuid: b9b7f0eb5cfd477aadabf4d64510c9ec
+              name: '{#ISP1} Operational Status to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.status.primary[{#AWSIP}]'
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp1_status.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: '0'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+            - uuid: 1ae6b26c509f4927ad3304e062ebbdca
+              name: '{#ISP2} MTR Hop Path Analysis to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.trace.backup[{#AWSIP}]'
+              value_type: TEXT
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp2_trace.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: 'Traceroute Offline/Timed Out'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+            - uuid: b20fd9f64d874e67b712b1f27c584122
+              name: '{#ISP1} MTR Hop Path Analysis to {#AWSIP}'
+              type: DEPENDENT
+              key: 'net.multi_isp.trace.primary[{#AWSIP}]'
+              value_type: TEXT
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$[?(@.ip == ''{#AWSIP}'')].isp1_trace.first()'
+                  error_handler: CUSTOM_VALUE
+                  error_handler_params: 'Traceroute Offline/Timed Out'
+              master_item:
+                key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+          trigger_prototypes:
+            - uuid: e771d2b5d45845ff8f614aa0b18dd194
+              expression: |
+                (max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],1m)=0 and max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.backup[{#AWSIP}],1m)=0)
+                and
+                nodata(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],1m)=0
+              name: 'CRITICAL ALERT: Dynamic Cloud Endpoint Unreachable over BOTH ISPs: {#AWSIP}'
+              priority: DISASTER
+            - uuid: 9770cee18c3746d6959f10473e0a1c42
+              expression: |
+                (max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],1m)=0 or max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],1m)>300)
+                and
+                nodata(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],1m)=0
+                and
+                length(last(/Web Performance Monitoring-Dual-ISP/net.multi_isp.trace.primary[{#AWSIP}]))>0
+              name: 'Path degradation via {#ISP1} Connection to {#AWSIP}'
+              priority: AVERAGE
+              description: |
+                <b>Current {#ISP1} Status:</b> {ITEM.LASTVALUE1} (1=Up, 0=Down)<br>
+                <b>Current {#ISP1} Latency:</b> {ITEM.LASTVALUE2}<br>
+                <br>
+                <b>[LIVE ISP1 MTR TRACEROUTE PATH]:</b><br>
+                <pre style="font-family: monospace; white-space: pre; background-color: #1e1e1e; color: #ffffff; padding: 12px; border-radius: 4px; margin-top: 5px; display: block;">
+                {ITEM.LASTVALUE4}
+                </pre>
+            - uuid: 7fe36d70dd2b47b78e20a403ea203a45
+              expression: |
+                (max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.backup[{#AWSIP}],1m)=0 or max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.backup[{#AWSIP}],1m)>300)
+                and
+                nodata(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.backup[{#AWSIP}],1m)=0
+                and
+                length(last(/Web Performance Monitoring-Dual-ISP/net.multi_isp.trace.backup[{#AWSIP}]))>0
+              name: 'Path degradation via {#ISP2} Connection to {#AWSIP}'
+              priority: AVERAGE
+              description: |
+                <b>Current {#ISP2} Status:</b> {ITEM.LASTVALUE1} (1=Up, 0=Down)<br>
+                <b>Current {#ISP2} Latency:</b> {ITEM.LASTVALUE2}<br>
+                <br>
+                <b>[LIVE ISP1 MTR TRACEROUTE PATH]:</b><br>
+                <pre style="font-family: monospace; white-space: pre; background-color: #1e1e1e; color: #ffffff; padding: 12px; border-radius: 4px; margin-top: 5px; display: block;">
+                {ITEM.LASTVALUE4}
+                </pre>
+          master_item:
+            key: 'check_web_site.py["{$AWS_SITE_URL}"]'
+          lld_macro_paths:
+            - lld_macro: '{#AWSIP}'
+              path: $.ip
+            - lld_macro: '{#ISP1}'
+              path: $.isp1_name
+            - lld_macro: '{#ISP2}'
+              path: $.isp2_name
+      macros:
+        - macro: '{$AWS_SITE_URL}'
