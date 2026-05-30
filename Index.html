@@ -5,73 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-ISP Web Performance Monitoring Hub</title>
     <style>
-        :root { --primary: #0e76a8; --dark: #1e293b; --bg: #f8fafc; --code-bg: #0f172a; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: var(--dark); background: var(--bg); margin: 0; padding: 0; }
-        header { background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; padding: 4rem 2rem; text-align: center; }
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
-        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 2rem; }
-        h2 { color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
-        pre { background: var(--code-bg); color: #f8fafc; padding: 1.25rem; border-radius: 6px; overflow-x: auto; font-family: 'Fira Code', Consolas, monospace; font-size: 0.9rem; }
-        code { background: #e2e8f0; color: #0f172a; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
-        pre code { background: none; color: inherit; padding: 0; }
-        .badge { background: #dbeafe; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: bold; font-size: 0.85rem; }
+        :root { --primary: #1e3a8a; --accent: #3b82f6; --dark: #0f172a; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: var(--dark); background: var(--bg); margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, #1e3a8a, #1d4ed8); color: white; padding: 3.5rem 1.5rem; text-align: center; }
+        nav { background: #111827; padding: 1rem; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        nav a { color: #f3f4f6; text-decoration: none; margin: 0 1.5rem; font-weight: 600; font-size: 0.95rem; transition: color 0.2s; }
+        nav a:hover { color: var(--accent); }
+        nav a.active { color: #60a5fa; border-bottom: 2px solid #60a5fa; padding-bottom: 0.25rem; }
+        .container { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2.5rem; border: 1px solid var(--border); }
+        h1 { margin: 0 0 0.5rem 0; font-size: 2.2rem; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .tool-box { background: var(--bg); padding: 1.5rem; border-radius: 6px; border-left: 4px solid var(--accent); }
+        .tool-box h3 { margin: 0 0 0.5rem 0; color: var(--dark); }
+        ul { padding-left: 1.25rem; }
+        li { margin-bottom: 0.5rem; }
+        .btn-container { text-align: center; margin-top: 2rem; }
+        .btn { display: inline-block; background: var(--accent); color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 6px; font-weight: 600; transition: background 0.2s; margin: 0 0.5rem; }
+        .btn:hover { background: #2563eb; }
+        .btn-sec { background: #475569; }
+        .btn-sec:hover { background: #334155; }
     </style>
 </head>
 <body>
 
+<nav>
+    <a class="active" href="index.html">Architecture Overview</a>
+    <a href="setup.html">Step-by-Step Setup</a>
+    <a href="troubleshooting.html">Troubleshooting Guide</a>
+</nav>
+
 <header>
     <h1>Multi-ISP Anycast Web Performance Monitor</h1>
-    <p>Automated Zabbix 7.4 Solution for Tracking Dynamic CDN Endpoints across Dual Providers</p>
+    <p>Automated Zabbix 7.4 Solution for Tracking Shifting CDN Endpoints Across Dual Transit Providers</p>
 </header>
 
 <div class="container">
     <div class="card">
-        <h2>Overview</h2>
-        <p>When monitoring high-availability websites behind Anycast networks or CDNs (Cloudflare, AWS CloudFront), target IP addresses rotate frequently. This solution uses <strong>Zabbix Low-Level Discovery (LLD)</strong> to discover active IP endpoints dynamically and monitor latency, operational availability, and hop paths (MTR) independently across a Primary and Backup ISP.</p>
+        <h2>How It Works</h2>
+        <p>When monitoring modern enterprise web platforms behind content delivery networks (CDNs) or Anycast groups, a domain name does not point to a fixed server. Instead, DNS resolutions return completely different IP addresses over time, sometimes rotating every minute. Standard monitoring architectures fall short here, as they evaluate the website as a single endpoint, obscuring path-specific performance anomalies.</p>
+        <p>This open-source solution framework leverages **Zabbix Low-Level Discovery (LLD)** to perform continuous target discovery and diagnostic triage. A master external script dynamically orchestrates simultaneous lookups over independent WAN links—binding to specific source interfaces—allowing you to inspect hop paths, latency variations, and transactional status matrices concurrently per active IP endpoint.</p>
     </div>
 
     <div class="card">
-        <h2>Features</h2>
-        <ul>
-            <li><strong>Dynamic Variable Matching:</strong> Tracks multi-ISP performance parameters simultaneously.</li>
-            <li><strong>Zero Stale Alerts:</strong> Uses Zabbix 7.4 native <code>nodata()</code> logic constraints to instantly silence alerts on retired Anycast IPs.</li>
-        </ul>
+        <h2>The Technical Core Stack</h2>
+        <p>This project achieves highly granular, automated path tracing by leveraging standard Linux networking utilities coordinated through native Zabbix 7.4 configuration patterns:</p>
+        
+        <div class="grid">
+            <div class="tool-box">
+                <h3>Zabbix 7.4 LLD Engine</h3>
+                <p>Acts as the state tracking mechanism. It interprets structured JSON data payloads from external scripts, dynamically creating and destroying dependent item prototypes and alarm triggers on the fly.</p>
+            </div>
+            <div class="tool-box">
+                <h3>Python 3 Execution Engine</h3>
+                <p>Leverages asynchronous lightweight worker threads to execute multi-tenant network diagnostic queries quickly, ensuring that slow traceroute actions do not serialize or choke system processes.</p>
+            </div>
+            <div class="tool-box">
+                <h3>MTR (My Traceroute)</h3>
+                <p>Combines classical <code>ping</code> and <code>traceroute</code> functionality. It queries intermediate layer-3 hops along transit paths, printing autonomous system numbers (ASN) directly inside diagnostic logs.</p>
+            </div>
+        </div>
     </div>
 
     <div class="card">
-        <h2>1. The Script Framework (<code>check_web_site.py</code>)</h2>
-        <p>Deploy this file to your Zabbix server external scripts directory: <code>/usr/lib/zabbix/externalscripts/</code>. Ensure it has execution permissions (<code>chmod +x</code>).</p>
-        <pre><code># The script must return a clean JSON payload mapping the discovered properties:
-[
-  {
-    "{#AWSIP}": "172.217.171.110",
-    "isp1_name": "JIO",
-    "isp2_name": "Pionner",
-    "isp1_status": 1,
-    "isp1_latency": 15.4,
-    "isp1_trace": "1. AS... \n2. AS..."
-  }
-]</code></pre>
-    </div>
-
-    <div class="card">
-        <h2>2. Zabbix Template Configuration</h2>
-        <p>Import the <code>Web Performance Monitoring-Dual-ISP.yaml</code> configuration file included in this repository into your Zabbix 7.4 instance. It configures the following safety-gated expression rules:</p>
-        <pre><code># Primary Path Alert Expression
-(max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],10m)=0 
-or min(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],3m)>300)
-and nodata(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],15m)=0</code></pre>
-        <p><em>Note: If the script drops an old IP, data collection stops. After 15 minutes, the <code>nodata()=0</code> boundary drops to False, smoothly disabling the trigger to prevent any false alerts while keeping historical metrics intact.</em></p>
-    </div>
-
-    <div class="card">
-        <h2>3. Grafana Integration Dashboard</h2>
-        <p>To avoid empty panels during rapid Anycast rotations, ensure you use the following transformation workflow:</p>
-        <ol>
-            <li>Set your query type mode explicitly to <strong>Text</strong>.</li>
-            <li>Add the <strong>Labels to fields</strong> transformation and set the mode context to <strong>Rows</strong>.</li>
-            <li>Run an <strong>Extract fields (JSON)</strong> pass to dynamically split the payload data frame streams into real-time metrics.</li>
-        </ol>
+        <h2>Getting Started</h2>
+        <p>Ready to deploy this framework to your infrastructure? Jump directly into our step-by-step documentation deployment guide or view the explicit real-world troubleshooting log to examine edge-case design resolutions.</p>
+        <div class="btn-container">
+            <a href="setup.html" class="btn">Proceed to Step-by-Step Setup ➡️</a>
+            <a href="troubleshooting.html" class="btn btn-sec">View Troubleshooting Guide</a>
+        </div>
     </div>
 </div>
 
