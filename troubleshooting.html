@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Troubleshooting Guide</title>
+    <style>
+        :root { --primary: #1e3a8a; --accent: #ea580c; --dark: #0f172a; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --code-bg: #0f172a; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: var(--dark); background: var(--bg); margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, #1e3a8a, #c2410c); color: white; padding: 2.5rem 1.5rem; text-align: center; }
+        nav { background: #111827; padding: 1rem; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        nav a { color: #f3f4f6; text-decoration: none; margin: 0 1.5rem; font-weight: 600; font-size: 0.95rem; }
+        nav a:hover { color: var(--accent); }
+        nav a.active { color: #f97316; border-bottom: 2px solid #f97316; padding-bottom: 0.25rem; }
+        .container { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem; }
+        .card { background: var(--card); padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 2.5rem; border: 1px solid var(--border); }
+        h1 { margin: 0 0 0.5rem 0; font-size: 2rem; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-top: 0; }
+        .issue-block { background: #fff7ed; border-left: 4px solid var(--accent); padding: 1.5rem; border-radius: 6px; margin: 1.5rem 0; }
+        .issue-title { font-weight: bold; color: #c2410c; margin-bottom: 0.5rem; font-size: 1.1rem; }
+        pre { background: var(--code-bg); color: #f8fafc; padding: 1.25rem; border-radius: 6px; overflow-x: auto; font-family: 'Fira Code', Consolas, monospace; font-size: 0.9rem; }
+        code { background: #e2e8f0; color: #0f172a; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9em; font-family: monospace; }
+        pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html">Architecture Overview</a>
+    <a href="setup.html">Step-by-Step Setup</a>
+    <a class="active" href="troubleshooting.html">Troubleshooting Guide</a>
+</nav>
+
+<header>
+    <h1>Advanced Engineering & Troubleshooting</h1>
+    <p>Deep-Dive Analysis of Structural YAML Constraints, Timing Tuning, and Alert Optimization Cases</p>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>Template Import Edge Cases</h2>
+        <p>During deployment lifecycle iterations inside Zabbix 7.4 configuration environments, several strict API validation errors can appear. Below are the documented fixes for these structural exceptions:</p>
+
+        <div class="issue-block">
+            <div class="issue-title">Issue 1: Preprocessing Parameter Type Schema Mismatch Error</div>
+            <p><strong>Symptom:</strong> The Zabbix frontend import manager crashes with the explicit validation error:</p>
+            <code>Invalid parameter "/1/preprocessing/1/params/1": an integer is expected.</code>
+            <p><strong>Root Cause:</strong> This error occurs because Zabbix 7.4 implements a strict API schema validation engine. If a template calls a standalone <code>CHECK_NOT_SUPPORTED</code> preprocessing rule block using an unmapped fallback parameter array, the parser crashes.</p>
+            <p><strong>Resolution:</strong> The template included in this repository resolves this issue by completely embedding error handlers directly inside the structural <code>JSONPATH</code> evaluation array, using explicit <code>CUSTOM_VALUE</code> definitions instead of isolated preprocessing steps.</p>
+        </div>
+
+        <div class="issue-block">
+            <div class="issue-title">Issue 2: Unknown Function Failures for LLD Metrics</div>
+            <p><strong>Symptom:</strong> Attempting to link alert triggers using legacy macro parameters throws expressions like <code>Unknown function "discovery"</code> or <code>Unknown function "lld_status"</code>.</p>
+            <p><strong>Root Cause:</strong> Starting in newer versions of Zabbix, structural metadata state lookups cannot be processed as standard trigger operations inside item prototype forms. They must be managed natively by the discovery engine instead.</p>
+            <p><strong>Resolution:</strong> Ensure your item trigger prototypes leverage native <code>nodata()</code> time boundaries to manage state changes cleanly. This acts as an automated logical safety gate, suppressing alerts when data feeds stop due to an IP rotation.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Data Interruption & False Alerting Matrix</h2>
+        <p><strong>The Core Dynamic CDN Challenge:</strong> When a website updates its Anycast destination IP endpoints, your script stops collecting data for the old IPs and starts mapping the new ones. The sudden lack of data can cause standard Zabbix expressions to evaluate incorrectly, triggering false alarms for the retired IP paths.</p>
+        
+        <p><strong>The Operational Fix:</strong> To fix this, we apply a strict <code>nodata(..., 15m)=0</code> safety check across our trigger definitions. If an IP falls out of rotation, data collection drops off. After 15 minutes of silence, the <code>nodata()</code> check evaluates to False, automatically disabling the alert trigger for that specific IP asset while keeping your historical graphs intact inside the database.</p>
+        <pre><code># Correctly gated expression architecture inside the template configuration
+(max(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],10m)=0 
+or min(/Web Performance Monitoring-Dual-ISP/net.multi_isp.latency.primary[{#AWSIP}],3m)>300)
+and
+nodata(/Web Performance Monitoring-Dual-ISP/net.multi_isp.status.primary[{#AWSIP}],15m)=0</code></pre>
+    </div>
+
+    <div class="card">
+        <h2>Persistent Diagnostics in Outage Alarms</h2>
+        <p><strong>Symptom:</strong> During a complete link outage or high latency spike, the traceroute output inside your alert notification logs disappears or returns an empty payload string.</p>
+        <p><strong>Root Cause:</strong> This happens when a trigger description uses a positional index macro (like <code>{ITEM.LASTVALUE4}</code>) while the expression includes an explicit text length validation rule like <code>length(last(...))>0</code>. If a link drops and the script execution fails, the string length evaluates to 0, which clears out the text log right when you need it most.</p>
+        <p><strong>Resolution:</strong> To resolve this, remove the string length condition from the trigger expression and use an absolute mathematical query string inside the trigger description text box instead. This forces Zabbix to display the **absolute last known traceroute snapshot** recorded right before the connection dropped:</p>
+        <pre><code>&lt;b&gt;[LAST KNOWN MTR TRACEROUTE PATH]:&lt;/b&gt;&lt;br&gt;
+&lt;pre style="font-family: monospace; background-color: #1e1e1e; color: #fff;"&gt;
+{?last(/Web Performance Monitoring-Dual-ISP/net.multi_isp.trace.primary[{#AWSIP}])}
+&lt;/pre&gt;</code></pre>
+    </div>
+</div>
+
+</body>
+</html>
